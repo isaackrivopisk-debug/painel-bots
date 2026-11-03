@@ -262,7 +262,9 @@ function bots() {
     (st.ultimo_score ? '<div class="cell" style="grid-column:1/-1"><span class="lbl">Última nota</span><b style="font-size:13px;font-weight:600">' + esc(st.ultimo_score) + "</b></div>" : "");
   $("regras").innerHTML = cell("Perfil", esc(cf.perfil)) + cell("Nota mínima", cf.score_min ?? "—") + cell("Tamanho", (cf.tamanho_pct ?? "—") + "% do saldo") + cell("Máx. posições", cf.max_posicoes ?? "—") +
     cell("Stop", "-" + (cf.stop_pct ?? "—") + "%") + cell("Trailing", (cf.trailing_pct ?? "—") + "% após +" + (cf.trailing_apos_pct ?? "—") + "%") +
-    cell("Sala de espera", (cf.espera_min ?? "—") + " min") + cell("Liquidez mín.", usd(cf.min_liquidez).replace(",00", ""));
+    cell("Sala de espera", (cf.espera_min ?? "—") + " min") + cell("Liquidez mín.", usd(cf.min_liquidez).replace(",00", "")) +
+    cell("Market cap máx.", cf.mc_max ? usd(cf.mc_max).replace(",00", "") : "sem limite") +
+    cell("Traders seguidos", cf.n_traders ?? "—") + cell("Leituras X/dia", (cf.x_max_leituras ?? "—") + " máx.");
 }
 
 // ---------- detalhe da moeda
