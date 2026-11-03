@@ -313,7 +313,9 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
   ["atv", "pos", "bots"].forEach(t => $("tab-" + t).classList.toggle("hide", t !== b.dataset.t));
   window.scrollTo(0, 0);
+  history.replaceState(null, "", "#" + b.dataset.t);
 });
+{ const h = location.hash.replace("#", ""); const b = document.querySelector('.tabs button[data-t="' + h + '"]'); if (b) b.click(); }
 $("filt").onclick = e => { const b = e.target.closest("button"); if (!b) return; filtro = b.dataset.f; $("filt").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); feed(); };
 document.addEventListener("click", e => { const it = e.target.closest(".item.click"); if (it && !e.target.closest(".panel")) detalhe({tok: it.dataset.tok, id: it.dataset.id}); });
 $("sheet").onclick = e => { if (e.target.id === "sheet") fechar(); };
