@@ -171,6 +171,7 @@ tr.sec:hover{background:transparent}
 <div class="wrap">
   <header class="top">
     <span class="pill sim" id="modo">MODO SIMULADO</span>
+    <span class="pill ghost" id="exec">Execução: —</span>
     <span class="pill wait" id="conn"><span class="d"></span><span id="conntx">CONECTANDO</span></span>
     <span class="cap mono" id="updtx">carregando…</span>
     <span class="sp"></span>
@@ -327,6 +328,11 @@ function render() {
   const real = S.modo !== "paper";
   $("modo").textContent = real ? "MODO REAL" : "MODO SIMULADO";
   $("modo").className = "pill " + (real ? "bad" : "sim");
+  const ex = S.execucao || {modo: "SIMULADO"};
+  const lat = ex.latencia_media_s != null ? ex.latencia_media_s.toFixed(1).replace(".", ",") + " s (" + ex.n_ordens + " ordens)"
+            : (ex.latencia_cotacao_s != null ? "— (cotação " + ex.latencia_cotacao_s.toFixed(1).replace(".", ",") + " s)" : "—");
+  $("exec").textContent = "Execução: " + ex.modo + (ex.kill_switch ? " · PARADA" : "") + " · latência média " + lat;
+  $("exec").className = "pill " + (ex.modo === "REAL" ? "bad" : ex.modo === "PAUSADO" ? "wait" : "ghost");
   $("vivo").className = "pill " + (S.vivo ? "ok" : "bad");
   $("vivotx").textContent = S.vivo ? "BOTS OPERANDO" : "BOTS PARADOS";
   $("eq").textContent = usd(S.equity);
@@ -484,7 +490,9 @@ function bots() {
     cell("Stop", "−" + (cf.stop_pct ?? "—") + "%") + cell("Trailing", (cf.trailing_pct ?? "—") + "% após +" + (cf.trailing_apos_pct ?? "—") + "%") +
     cell("Sala de espera", (cf.espera_min ?? "—") + " min") + cell("Liquidez mín.", usd(cf.min_liquidez).replace(",00", "")) +
     cell("Market cap máx.", cf.mc_max ? usd(cf.mc_max).replace(",00", "") : "sem limite") +
-    cell("Traders seguidos", cf.n_traders ?? "—") + cell("Leituras X/dia", (cf.x_max_leituras ?? "—") + " máx.");
+    cell("Traders seguidos", cf.n_traders ?? "—") + cell("Leituras X/dia", (cf.x_max_leituras ?? "—") + " máx.") +
+    cell("Execução", esc((S.execucao || {}).modo || "SIMULADO")) +
+    cell("Latência média", (S.execucao || {}).latencia_media_s != null ? S.execucao.latencia_media_s.toFixed(1).replace(".", ",") + " s" : "sem ordens reais");
 }
 
 // ---------- detalhe da moeda
