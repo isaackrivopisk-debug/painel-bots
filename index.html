@@ -203,7 +203,7 @@ tr.sec:hover{background:transparent}
       <section class="card" data-tab="pos">
         <div class="hd"><h2>Posições</h2><span class="cap">toque/clique numa moeda para ver o detalhe</span></div>
         <div class="tw dsk-table"><table>
-          <thead><tr><th>Moeda</th><th>Entrada</th><th>Hora</th><th>Preço atual / saída</th><th>P/L $</th><th>P/L %</th><th>Stop</th><th class="mot">Motivo / status</th></tr></thead>
+          <thead><tr><th>Moeda</th><th>MC entrada</th><th>Hora</th><th>MC atual / saída</th><th>P/L $</th><th>P/L %</th><th>Stop (MC)</th><th class="mot">Motivo / status</th></tr></thead>
           <tbody id="tbody"></tbody></table></div>
         <div class="mobonly">
           <div class="lbl mut" style="margin:2px 0 8px">Abertas</div><div class="list" id="openm"></div>
@@ -267,6 +267,15 @@ function px(v) {
   const s = v.toPrecision(4);
   return "$" + (s.includes("e") ? Number(s).toFixed(10).replace(/0+$/, "") : s);
 }
+// market cap: $1,24M / $850k / $1,2B (cai para o preco se faltar o MC)
+function mc(v, est) {
+  if (v == null || isNaN(v)) return "—";
+  const f = (x, d) => x.toLocaleString("pt-BR", {minimumFractionDigits: d, maximumFractionDigits: d});
+  const a = Math.abs(v);
+  const t = a >= 1e9 ? f(v / 1e9, 2) + "B" : a >= 1e6 ? f(v / 1e6, 2) + "M" : a >= 1e3 ? f(v / 1e3, a >= 1e5 ? 0 : 1) + "k" : f(v, 0);
+  return (est ? "~" : "") + "$" + t;
+}
+const MC = (o, k, pk) => o && o[k] != null ? mc(o[k], o.mc_estimado) : (pk && o && o[pk] != null ? px(o[pk]) : "—");
 const TZ = "America/Sao_Paulo";
 const hora = ts => new Date(ts * 1000).toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: TZ});
 const hm = ts => new Date(ts * 1000).toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit", timeZone: TZ});
@@ -418,23 +427,23 @@ function tabela() {
   const o = S.posicoes || [], c = S.fechadas || [];
   const coin = s => '<div class="coin">' + av(s) + "<span>" + esc(s) + "</span></div>";
   let h = '<tr class="sec"><td colspan="8">ABERTAS (' + o.length + ")</td></tr>";
-  h += o.length ? o.map(p => '<tr data-tok="' + esc(p.token) + '"><td>' + coin(p.simbolo) + "</td><td>" + px(p.entrada) + "</td><td>" + hora(p.aberta_ts) + "<br><span class='mut'>há " + dur(S.gerado_ts - p.aberta_ts) + "</span></td><td>" + px(p.preco) +
-    '</td><td class="' + cls(p.pnl_usd) + '">' + usd(p.pnl_usd, 1) + '</td><td class="' + cls(p.pnl_pct) + '">' + pct(p.pnl_pct) + '</td><td class="neg">' + px(p.stop) + "<br><span class='mut'>" + pct((p.stop / p.entrada - 1) * 100) + '</span></td><td class="mot">' +
+  h += o.length ? o.map(p => '<tr data-tok="' + esc(p.token) + '"><td>' + coin(p.simbolo) + "</td><td>" + MC(p, "mc_entrada", "entrada") + "</td><td>" + hora(p.aberta_ts) + "<br><span class='mut'>há " + dur(S.gerado_ts - p.aberta_ts) + "</span></td><td>" + MC(p, "mc_atual", "preco") +
+    '</td><td class="' + cls(p.pnl_usd) + '">' + usd(p.pnl_usd, 1) + '</td><td class="' + cls(p.pnl_pct) + '">' + pct(p.pnl_pct) + '</td><td class="neg">' + MC(p, "mc_stop", "stop") + "<br><span class='mut'>" + pct((p.stop / p.entrada - 1) * 100) + '</span></td><td class="mot">' +
     (p.trailing_ativo ? "trailing ativo (" + p.trailing_pct + "% do pico)" : "aberta · trailing após +" + p.trailing_apos_pct + "%") + "</td></tr>").join("")
     : '<tr class="emptyrow"><td colspan="8">Nenhuma posição aberta agora.</td></tr>';
   h += '<tr class="sec"><td colspan="8">FECHADAS (' + c.length + ")</td></tr>";
-  h += c.length ? c.map(p => '<tr data-tok="' + esc(p.token) + '" data-id="' + p.id + '"><td>' + coin(p.simbolo) + "</td><td>" + px(p.entrada) + "</td><td>" + hora(p.aberta_ts) + "<br><span class='mut'>→ " + hora(p.fechada_ts) + "</span></td><td>" + px(p.saida) +
+  h += c.length ? c.map(p => '<tr data-tok="' + esc(p.token) + '" data-id="' + p.id + '"><td>' + coin(p.simbolo) + "</td><td>" + MC(p, "mc_entrada", "entrada") + "</td><td>" + hora(p.aberta_ts) + "<br><span class='mut'>→ " + hora(p.fechada_ts) + "</span></td><td>" + MC(p, "mc_saida", "saida") +
     '</td><td class="' + cls(p.pnl_usd) + '">' + usd(p.pnl_usd, 1) + '</td><td class="' + cls(p.pnl_pct) + '">' + pct(p.pnl_pct) + '</td><td class="mut">—</td><td class="mot">' + esc(p.motivo || "") + "</td></tr>").join("")
     : '<tr class="emptyrow"><td colspan="8">Nenhuma operação fechada ainda.</td></tr>';
   $("tbody").innerHTML = h;
   // versao celular (cartoes)
   $("openm").innerHTML = o.length ? o.map(p => '<div class="item click" data-tok="' + esc(p.token) + '">' + av(p.simbolo) +
     '<div class="body"><div class="row"><span class="sym">' + esc(p.simbolo) + '</span><span class="res ' + cls(p.pnl_pct) + '">' + pct(p.pnl_pct) + "</span></div>" +
-    '<div class="row"><span class="sub">entrada ' + hora(p.aberta_ts) + " · " + px(p.preco) + " · stop " + px(p.stop) + '</span><span class="res ' + cls(p.pnl_usd) + '" style="font-weight:600">' + usd(p.pnl_usd, 1) + "</span></div></div></div>").join("")
+    '<div class="row"><span class="sub">MC ' + MC(p, "mc_entrada", "entrada") + " → " + MC(p, "mc_atual", "preco") + " · stop " + MC(p, "mc_stop", "stop") + '</span><span class="res ' + cls(p.pnl_usd) + '" style="font-weight:600">' + usd(p.pnl_usd, 1) + "</span></div></div></div>").join("")
     : '<div class="empty">Nenhuma posição aberta agora.</div>';
   $("closedm").innerHTML = c.length ? c.map(p => '<div class="item click" data-tok="' + esc(p.token) + '" data-id="' + p.id + '">' + av(p.simbolo) +
     '<div class="body"><div class="row"><span class="sym">' + esc(p.simbolo) + '</span><span class="res ' + cls(p.pnl_usd) + '">' + usd(p.pnl_usd, 1) + "</span></div>" +
-    '<div class="row"><span class="sub">' + hora(p.aberta_ts) + " → " + hora(p.fechada_ts) + " · " + esc(p.motivo || "") + '</span><span class="res ' + cls(p.pnl_pct) + '" style="font-weight:600">' + pct(p.pnl_pct) + "</span></div></div></div>").join("")
+    '<div class="row"><span class="sub">' + "MC " + MC(p, "mc_entrada", "entrada") + " → " + MC(p, "mc_saida", "saida") + " · " + esc(p.motivo || "") + '</span><span class="res ' + cls(p.pnl_pct) + '" style="font-weight:600">' + pct(p.pnl_pct) + "</span></div></div></div>").join("")
     : '<div class="empty">Nenhuma operação fechada ainda.</div>';
 }
 const GRUPOS = {trades: ["COMPRA", "PARCIAL", "FECHOU"], filtro: ["REJEITADO", "ESPERA", "LIBERADO", "PULOU"], sistema: ["INFO", "ERRO"]};
@@ -450,7 +459,7 @@ function feed() {
     else if (x.tipo === "PARCIAL") res = '<span class="res pos">' + pct(x.resultado_pct) + "</span>";
     else if (x.tipo === "COMPRA") res = '<span class="res">' + usd(x.usd) + "</span>";
     const sym = x.simbolo || (x.tipo === "ERRO" ? "⚠" : "•");
-    const sub = trade ? esc(x.agente) + " · " + px(x.preco) + " · " + esc(x.texto) : esc(x.agente) + " · " + esc(x.texto);
+    const sub = trade ? esc(x.agente) + " · MC " + MC(x, "mc", "preco") + " · " + esc(x.texto) : esc(x.agente) + " · " + esc(x.texto);
     return '<div class="item' + (x.token ? " click" : "") + '"' + (x.token ? ' data-tok="' + esc(x.token) + '"' : "") + ">" + av(sym) +
       '<div class="body"><div class="row"><span class="sym"><span class="tag t-' + x.tipo + '">' + TXT[x.tipo] + "</span>" + esc(x.simbolo || "") + '</span><span class="tm">' + dataHoraSeg(x.ts) + "</span></div>" +
       '<div class="row"><span class="sub">' + sub + "</span>" + res + "</div></div></div>";
@@ -490,24 +499,25 @@ function detalhe(key, refresh) {
     '<div><div class="sym" style="font-size:20px">' + esc(p ? p.simbolo : ops[0].simbolo) + '</div><div class="sub mono">' + (aberta ? "POSIÇÃO ABERTA" : "POSIÇÃO FECHADA") + " · MODO SIMULADO</div></div></div>" +
     '<button class="xbtn" onclick="fechar()" aria-label="Fechar">×</button></div>';
   if (aberta) {
-    h += '<div style="margin-top:14px"><span class="big mono">' + px(p.preco) + '</span> <span class="res ' + cls(p.pnl_pct) + '" style="font-size:15px">' + pct(p.pnl_pct) + " · " + usd(p.pnl_usd, 1) + "</span></div>";
-    const marcas = [["Stop", p.stop, "#f2555a"], ["Entrada", p.entrada, "#8b949e"], ["Atual", p.preco, "#ffffff"], ["Pico", p.pico, "#58a6ff"]].concat((p.alvos || []).map(a => ["+" + a.ganho_pct + "%", a.preco, a.feito ? "#2fd27a" : "#2f7d57"]));
+    h += '<div style="margin-top:14px"><span class="big mono">' + MC(p, "mc_atual", "preco") + '</span> <span class="res ' + cls(p.pnl_pct) + '" style="font-size:15px">' + pct(p.pnl_pct) + " · " + usd(p.pnl_usd, 1) + '</span><div class="sub mono" style="font-size:11px">market cap atual' + (p.mc_estimado ? " (estimado)" : "") + " · preço " + px(p.preco) + "</div></div>";
+    const marcas = [["Stop", p.mc_stop ?? p.stop, "#f2555a"], ["Entrada", p.mc_entrada ?? p.entrada, "#8b949e"], ["Atual", p.mc_atual ?? p.preco, "#ffffff"], ["Pico", p.mc_pico ?? p.pico, "#58a6ff"]].concat((p.alvos || []).map(a => ["+" + a.ganho_pct + "%", a.mc ?? a.preco, a.feito ? "#2fd27a" : "#2f7d57"]));
     const vs = marcas.map(m => m[1]).filter(v => v > 0), lo = Math.min(...vs), hi = Math.max(...vs);
     h += '<div class="bar">' + marcas.map(m => { const x = ((m[1] - lo) / ((hi - lo) || 1) * 100).toFixed(1); return '<i style="left:' + x + "%;background:" + m[2] + '"></i>' + (["Stop", "Atual"].includes(m[0]) || m[0].startsWith("+") ? '<span style="left:' + x + '%">' + m[0] + "</span>" : ""); }).join("") + "</div>";
-    h += '<div class="cells">' + cell("Entrada", px(p.entrada) + '<br><small class="mut">' + dataHora(p.aberta_ts) + "</small>") + cell("Preço atual", px(p.preco)) +
-      cell("Stop atual", px(p.stop) + '<br><small class="mut">' + pct((p.stop / p.entrada - 1) * 100) + " da entrada</small>", "neg") +
+    h += '<div class="cells">' + cell("MC entrada", MC(p, "mc_entrada", "entrada") + '<br><small class="mut">' + dataHora(p.aberta_ts) + "</small>") + cell("MC atual", MC(p, "mc_atual", "preco") + '<br><small class="mut">' + pct(p.pnl_pct) + "</small>") +
+      cell("Stop atual (MC)", MC(p, "mc_stop", "stop") + '<br><small class="mut">' + pct((p.stop / p.entrada - 1) * 100) + " da entrada</small>", "neg") +
       cell("Trailing", p.trailing_ativo ? "ATIVO " + p.trailing_pct + "% do pico" : (p.trailing_pct + "% após +" + p.trailing_apos_pct + "%")) +
-      cell("Pico", px(p.pico) + '<br><small class="mut">' + pct((p.pico / p.entrada - 1) * 100) + "</small>") + cell("Tempo", dur(S.gerado_ts - p.aberta_ts) + (p.max_min ? '<br><small class="mut">máx. ' + p.max_min + " min</small>" : "")) +
+      cell("MC pico", MC(p, "mc_pico", "pico") + '<br><small class="mut">' + pct((p.pico / p.entrada - 1) * 100) + "</small>") + cell("Tempo", dur(S.gerado_ts - p.aberta_ts) + (p.max_min ? '<br><small class="mut">máx. ' + p.max_min + " min</small>" : "")) +
       cell("Investido", usd(p.custo)) + cell("Valor agora", usd(p.valor) + '<br><small class="mut">' + Math.round(p.qty_pct) + "% da posição</small>") +
       cell("P/L total", usd(p.pnl_usd, 1), cls(p.pnl_usd)) + cell("Realizado", usd(p.realizado)) + cell("Nota", p.score ? Math.round(p.score) : "—") + cell("Perfil", esc(p.perfil || "—")) + "</div>";
-    if ((p.alvos || []).length) h += "<h2>Alvos</h2><div class='list'>" + p.alvos.map(a => '<div class="item"><div class="body"><div class="row"><span class="sym">+' + a.ganho_pct + "% · vende " + Math.round(a.frac * 100) + "%" + '</span><span class="st ' + (a.feito ? "ok" : "neu") + '">' + (a.feito ? "FEITO" : "PENDENTE") + '</span></div><div class="sub mono">' + px(a.preco) + "</div></div></div>").join("") + "</div>";
+    if ((p.alvos || []).length) h += "<h2>Alvos</h2><div class='list'>" + p.alvos.map(a => '<div class="item"><div class="body"><div class="row"><span class="sym">+' + a.ganho_pct + "% · vende " + Math.round(a.frac * 100) + "%" + '</span><span class="st ' + (a.feito ? "ok" : "neu") + '">' + (a.feito ? "FEITO" : "PENDENTE") + '</span></div><div class="sub mono">MC ' + (a.mc != null ? mc(a.mc, p.mc_estimado) : px(a.preco)) + ' <small class="mut">· preço ' + px(a.preco) + "</small></div></div></div>").join("") + "</div>";
   } else if (p) {
     h += '<div style="margin-top:14px"><span class="big mono ' + cls(p.pnl_usd) + '">' + usd(p.pnl_usd, 1) + '</span> <span class="res ' + cls(p.pnl_pct) + '" style="font-size:15px">' + pct(p.pnl_pct) + "</span></div>";
-    h += '<div class="cells" style="margin-top:12px">' + cell("Entrada", px(p.entrada) + '<br><small class="mut">' + dataHora(p.aberta_ts) + "</small>") + cell("Saída", px(p.saida) + '<br><small class="mut">' + dataHora(p.fechada_ts) + "</small>") +
-      cell("Pico", px(p.pico) + '<br><small class="mut">' + pct((p.pico / p.entrada - 1) * 100) + "</small>") + cell("Duração", dur(p.fechada_ts - p.aberta_ts)) +
+    h += '<div class="cells" style="margin-top:12px">' + cell("MC entrada", MC(p, "mc_entrada", "entrada") + '<br><small class="mut">' + dataHora(p.aberta_ts) + "</small>") + cell("MC saída", MC(p, "mc_saida", "saida") + '<br><small class="mut">' + dataHora(p.fechada_ts) + "</small>") +
+      cell("MC pico", MC(p, "mc_pico", "pico") + '<br><small class="mut">' + pct((p.pico / p.entrada - 1) * 100) + "</small>") + cell("Duração", dur(p.fechada_ts - p.aberta_ts)) +
       cell("Investido", usd(p.custo)) + cell("Recebido", usd(p.realizado)) + cell("Motivo", esc(p.motivo || "—")) + cell("Nota", p.score ? Math.round(p.score) : "—") + "</div>";
+    h += '<div class="sub mono" style="font-size:11px;margin-top:8px">preço entrada ' + px(p.entrada) + " · saída " + px(p.saida) + (p.mc_estimado ? " · MC estimado pelo supply atual" : "") + "</div>";
   }
-  if (ops.length) h += "<h2>Operações</h2><div class='list'>" + ops.map(x => '<div class="item"><div class="body"><div class="row"><span class="sym"><span class="tag t-' + x.tipo + '">' + TXT[x.tipo] + '</span></span><span class="tm">' + dataHoraSeg(x.ts) + '</span></div><div class="sub">' + px(x.preco) + " · " + esc(x.texto) + "</div></div></div>").join("") + "</div>";
+  if (ops.length) h += "<h2>Operações</h2><div class='list'>" + ops.map(x => '<div class="item"><div class="body"><div class="row"><span class="sym"><span class="tag t-' + x.tipo + '">' + TXT[x.tipo] + '</span></span><span class="tm">' + dataHoraSeg(x.ts) + '</span></div><div class="sub">MC ' + MC(x, "mc", "preco") + ' <small class="mut">(preço ' + px(x.preco) + ")</small> · " + esc(x.texto) + "</div></div></div>").join("") + "</div>";
   const url = p && p.url;
   if (url) h += '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">Abrir na DexScreener</a>';
   if (key.tok) h += '<div class="sub mono" style="margin-top:10px;text-align:center;font-size:11px">' + esc(key.tok) + "</div>";
