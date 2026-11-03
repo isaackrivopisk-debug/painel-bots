@@ -152,6 +152,7 @@ function px(v) {
 }
 const hora = ts => new Date(ts * 1000).toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo"});
 const dataHora = ts => new Date(ts * 1000).toLocaleString("pt-BR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo"});
+const dataHoraSeg = ts => new Date(ts * 1000).toLocaleString("pt-BR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo"});
 function dur(s) { s = Math.max(0, Math.round(s)); if (s < 60) return s + " s"; if (s < 3600) return Math.floor(s / 60) + " min"; return Math.floor(s / 3600) + " h " + Math.floor(s % 3600 / 60) + " min"; }
 function cor(sym) { let h = 0; for (const c of String(sym)) h = (h * 31 + c.charCodeAt(0)) % 360; return "hsl(" + h + ",70%,62%)"; }
 function av(sym) { return '<div class="av" style="background:' + cor(sym) + '">' + esc(String(sym || "?").slice(0, 2).toUpperCase()) + "</div>"; }
@@ -186,6 +187,8 @@ function usar(j, nome, aviso) {
   if (!S || !j.gerado_ts || j.gerado_ts >= S.gerado_ts) S = j;
   fonte = aviso ? aviso + " · " + nome : "";
   render(); tick();
+  const m = location.hash.match(/^#tok=([^&]+)/);
+  if (m && !aberto) detalhe({tok: decodeURIComponent(m[1])});
 }
 
 // ---------- render
@@ -247,11 +250,12 @@ function posicoes() {
 function bots() {
   $("bots").innerHTML = (S.bots || []).map(b => {
     const idade = b.ts ? S.gerado_ts - b.ts : null;
-    const st = b.neutro ? ["neu", "NEUTRO"] : (!b.ok ? ["bad", "FALHA"] : (idade != null && idade > 300 ? ["bad", "PARADO"] : ["ok", "ATIVO"]));
+    const st = b.neutro ? ["neu", "NEUTRO"] : (!S.vivo ? ["bad", "PARADO"] : (!b.ok ? ["bad", "FALHA"] : ["ok", "ATIVO"]));
+    const info = b.neutro ? (b.id === "x" ? "Sem fonte do X configurada: nota neutra (50)" : "Nenhuma carteira em wallets.json: nota neutra (50)") : (b.info || "");
     return '<div class="item bot">' + '<div class="av" style="background:' + (st[0] === "ok" ? "#22e08a" : st[0] === "neu" ? "#5b6578" : "#ff5470") + '">' + esc(b.num.replace("Bot ", "")) + "</div>" +
       '<div class="body"><div class="row"><span class="sym">' + esc(b.num) + " · " + esc(b.nome) + '</span><span class="st ' + st[0] + '">' + st[1] + "</span></div>" +
-      '<div class="sub">' + esc(b.info || "") + (idade != null ? " · há " + dur(idade) : "") + "</div></div></div>";
-  }).join("") + '<div class="item"><div class="av" style="background:' + (S.vivo ? "#22e08a" : "#ff5470") + '">⚙</div><div class="body"><div class="row"><span class="sym">Orquestrador</span><span class="st ' + (S.vivo ? "ok" : "bad") + '">' + (S.vivo ? "ATIVO" : "PARADO") + '</span></div><div class="sub">último ciclo há ' + dur(S.gerado_ts - S.heartbeat) + "</div></div></div>";
+      '<div class="sub">' + esc(info) + (idade != null ? " · há " + dur(idade) : "") + "</div></div></div>";
+  }).join("") + '<div class="item bot"><div class="av" style="background:' + (S.vivo ? "#22e08a" : "#ff5470") + '">⚙</div><div class="body"><div class="row"><span class="sym">Orquestrador</span><span class="st ' + (S.vivo ? "ok" : "bad") + '">' + (S.vivo ? "ATIVO" : "PARADO") + '</span></div><div class="sub">último ciclo há ' + dur(S.gerado_ts - S.heartbeat) + "</div></div></div>";
   const st = S.stats || {}, cf = S.config || {};
   const cell = (l, v) => '<div class="cell"><span class="lbl">' + l + "</span><b>" + v + "</b></div>";
   $("stats").innerHTML = cell("Scans", st.scans_1h ?? "—") + cell("Checagens de segurança", st.checks_1h ?? "—") + cell("Rejeitados", st.rejeitados_1h ?? "—") + cell("Ciclo", (st.intervalo_ciclo_s || "—") + " s") +
@@ -289,7 +293,7 @@ function detalhe(key, refresh) {
       cell("Pico", px(p.pico) + '<br><small class="lbl">' + pct((p.pico / p.entrada - 1) * 100) + "</small>") + cell("Duração", dur(p.fechada_ts - p.aberta_ts)) +
       cell("Investido", usd(p.custo)) + cell("Recebido", usd(p.realizado)) + cell("Motivo", esc(p.motivo || "—")) + cell("Nota", p.score ? Math.round(p.score) : "—") + "</div>";
   }
-  if (ops.length) h += "<h2>Operações</h2><div class='list'>" + ops.map(x => '<div class="item"><div class="body"><div class="row"><span class="sym"><span class="tag t-' + x.tipo + '">' + TXT[x.tipo] + '</span></span><span class="time">' + dataHora(x.ts) + ":" + new Date(x.ts * 1000).toLocaleTimeString("pt-BR", {second: "2-digit", timeZone: "America/Sao_Paulo"}).slice(-2) + '</span></div><div class="sub">' + px(x.preco) + " · " + esc(x.texto) + "</div></div></div>").join("") + "</div>";
+  if (ops.length) h += "<h2>Operações</h2><div class='list'>" + ops.map(x => '<div class="item"><div class="body"><div class="row"><span class="sym"><span class="tag t-' + x.tipo + '">' + TXT[x.tipo] + '</span></span><span class="time">' + dataHoraSeg(x.ts) + '</span></div><div class="sub">' + px(x.preco) + " · " + esc(x.texto) + "</div></div></div>").join("") + "</div>";
   const url = p && p.url;
   if (url) h += '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">Abrir na DexScreener</a>';
   if (key.tok) h += '<div class="sub" style="margin-top:10px;text-align:center">' + esc(key.tok) + "</div>";
