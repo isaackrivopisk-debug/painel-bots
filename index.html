@@ -195,12 +195,17 @@ body:not(.cmp) .cmponly{display:none!important}
   .grab{display:block;width:40px;height:5px;border-radius:9px;background:#333d4f;margin:0 auto 10px}
   .big{font-size:24px}
 }
+.liga{cursor:pointer;border:1px solid #333d4f;background:#161b22;color:#e6edf3;font:inherit;font-weight:700}
+.liga.on{border-color:#2ea043}.liga.off{border-color:#f85149}.liga.lua{border-color:#d29922}
+.liga:disabled{cursor:default;opacity:.85}
 </style>
 </head>
 <body class="t-atv">
 <div class="wrap">
   <header class="top">
     <span class="pill sim" id="modo">MODO SIMULADO</span> <span class="pill ghost" id="horario"></span>
+    <button class="pill liga" id="ligabtn" type="button" title="Ligar/desligar novas compras dos bots">…</button>
+    <a href="#" id="ligatok" class="cap mono" style="color:#8b949e">token</a>
     <span class="pill ghost" id="exec">Execução: —</span>
     <span class="pill wait" id="conn"><span class="d"></span><span id="conntx">CONECTANDO</span></span>
     <span class="cap mono" id="updtx">carregando…</span>
@@ -422,6 +427,53 @@ function setEst(e) {
   EST = e; localStorage.setItem("est", e); S = visao(); fechar(); render();
   if (e !== "cmp") window.scrollTo(0, 0);
 }
+// ---- botao LIGAR/DESLIGAR: grava controle/controle.json na branch dados (token so no localStorage deste navegador)
+const CTRL_URL = "https://api.github.com/repos/" + REPO + "/contents/controle/controle.json";
+let ligaPend = null;
+function pintaLiga() {
+  const b = $("ligabtn"); if (!b || !RAW) return;
+  const C = RAW.controle || {ligado: true}, H = RAW.horario || {dentro: true};
+  if (ligaPend !== null && ligaPend === C.ligado) ligaPend = null;
+  const lig = ligaPend !== null ? ligaPend : C.ligado;
+  let t, c;
+  if (C.kill_switch) { t = "⛔ Parada (kill switch)"; c = "off"; }
+  else if (!lig) { t = "🔴 Desligado"; c = "off"; }
+  else if (!H.dentro) { t = "🌙 Fora do horário"; c = "lua"; }
+  else { t = "🟢 Ligado"; c = "on"; }
+  if (ligaPend !== null) t += " (aplicando…)";
+  const tok = localStorage.getItem("gh_ctrl_token");
+  b.textContent = t; b.className = "pill liga " + c; b.disabled = !tok;
+  b.title = tok ? ("Clique para " + (lig ? "DESLIGAR" : "LIGAR") + " os bots") : "Sem token: só mostra o estado. Toque em 'token' para configurar.";
+  $("ligatok").textContent = tok ? "token ✓" : "token";
+}
+async function clicaLiga() {
+  const tok = localStorage.getItem("gh_ctrl_token"); if (!tok || !RAW) return;
+  const atual = ligaPend !== null ? ligaPend : (RAW.controle || {ligado: true}).ligado;
+  const novo = !atual;
+  if (!confirm(novo ? "LIGAR os bots (voltam a comprar no horário)?" : "DESLIGAR os bots? (não abrem novas compras; posições abertas continuam com stop/saída)")) return;
+  const h = {"Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json"};
+  try {
+    let sha;
+    const g = await fetch(CTRL_URL + "?ref=dados", {headers: h, cache: "no-store"});
+    if (g.status === 200) sha = (await g.json()).sha; else if (g.status !== 404) throw new Error("HTTP " + g.status);
+    const body = {message: "controle: " + (novo ? "ligar" : "desligar"), branch: "dados",
+      content: btoa(JSON.stringify({ligado: novo, ts: Math.floor(Date.now() / 1000), origem: "painel"}))};
+    if (sha) body.sha = sha;
+    const p = await fetch(CTRL_URL, {method: "PUT", headers: Object.assign({"Content-Type": "application/json"}, h), body: JSON.stringify(body)});
+    if (!p.ok) throw new Error("HTTP " + p.status + (p.status === 401 || p.status === 403 ? " (token inválido ou sem permissão Contents: write)" : ""));
+    ligaPend = novo; pintaLiga();
+    alert("Enviado. Os bots aplicam em até ~30 s e o painel atualiza na próxima leitura.");
+  } catch (e) { alert("Não consegui gravar: " + e.message); }
+}
+function configToken(ev) {
+  ev.preventDefault();
+  const v = prompt("Cole o token do GitHub (fine-grained, só o repo painel-bots, Contents: read/write). Fica salvo só neste navegador. Deixe vazio para apagar.", "");
+  if (v === null) return;
+  if (v.trim()) localStorage.setItem("gh_ctrl_token", v.trim()); else localStorage.removeItem("gh_ctrl_token");
+  pintaLiga();
+}
+document.addEventListener("DOMContentLoaded", () => { $("ligabtn").onclick = clicaLiga; $("ligatok").onclick = configToken; });
+
 function render() {
   if (!S) return;
   estrategias();
@@ -431,6 +483,7 @@ function render() {
   const H = S.horario || {dentro: true, texto: ""};
   $("horario").textContent = H.dentro ? "☀️ " + H.texto : "🌙 " + H.texto;
   $("horario").className = "pill " + (H.dentro ? "ghost" : "wait");
+  pintaLiga();
   const ex = S.execucao || {modo: "SIMULADO"};
   const lat = ex.latencia_media_s != null ? ex.latencia_media_s.toFixed(1).replace(".", ",") + " s (" + ex.n_ordens + " ordens)"
             : (ex.latencia_cotacao_s != null ? "— (cotação " + ex.latencia_cotacao_s.toFixed(1).replace(".", ",") + " s)" : "—");
