@@ -126,6 +126,31 @@ tr.sec:hover{background:transparent}
 .panel h2{margin:18px 0 8px;color:var(--mut)}
 .tabs{display:none}
 .mobonly{display:none}
+/* estrategias */
+.estbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.estsel{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+.estsel button{background:transparent;border:0;color:var(--mut);font:700 12px var(--mono);padding:8px 14px;cursor:pointer;letter-spacing:.03em;display:flex;align-items:center;gap:6px}
+.estsel button+button{border-left:1px solid var(--line)}
+.estsel button.on{background:var(--card2);color:var(--tx)}
+.estsel .dot{width:8px;height:8px;border-radius:50%}
+.esttag{display:inline-block;font:800 9.5px var(--mono);letter-spacing:.04em;padding:2px 6px;border-radius:4px;color:#0b0e13;vertical-align:1px}
+.cmpcard{margin-top:14px}
+.cmpcard tbody tr.sel td{background:var(--card2)}
+.crit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.crit ul{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--tx)}
+.crit li{margin:2px 0}
+.crit .lbl{margin-top:10px}
+body.cmp .estsec{display:none!important}
+body:not(.cmp) .cmponly{display:none!important}
+@media (max-width:899px){
+  .estbar{margin-top:10px}
+  .estsel{width:100%}
+  .estsel button{flex:1;justify-content:center;padding:9px 4px;font-size:11px}
+  .estsel button .dot{display:none}
+  .crit{grid-template-columns:minmax(0,1fr)}
+  .cmpcard{margin-top:12px}
+  body.cmp [data-tab].cmponly{display:block}
+}
 /* ---------- desktop medio */
 @media (max-width:1250px) and (min-width:900px){
   .sum{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -179,7 +204,28 @@ tr.sec:hover{background:transparent}
     <span class="pill" id="vivo"><span class="d"></span><span id="vivotx">—</span></span>
   </header>
 
-  <section class="card sum" id="resumo">
+  <div class="estbar"><div class="estsel" id="estsel"></div><span class="cap mono" id="estcap"></span></div>
+
+  <section class="card cmpcard">
+    <div class="hd"><h2>Estratégias lado a lado</h2><span class="cap">cada uma com carteira simulada própria de US$ 100 · toque numa linha para abrir</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>Estratégia</th><th>Saldo</th><th>Lucro $</th><th>Trades</th><th>Acerto</th><th>Abertas</th></tr></thead>
+      <tbody id="cmpbody"></tbody></table></div>
+  </section>
+
+  <section class="card cmpcard cmponly">
+    <div class="hd"><h2>Critérios de cada estratégia</h2><span class="cap">mesmas leituras de mercado, segurança, X e carteiras; cada uma escolhe moedas diferentes</span></div>
+    <div class="crit" id="crit"></div>
+  </section>
+
+  <section class="card cmpcard cmponly">
+    <div class="hd"><h2>Trades de todas as estratégias</h2><span class="cap" id="ntrades"></span></div>
+    <div class="tw"><table>
+      <thead><tr><th>Moeda</th><th>Estratégia</th><th>Tipo</th><th>Hora</th><th>MC</th><th>Valor</th><th>Lucro $</th><th class="mot">Detalhe</th></tr></thead>
+      <tbody id="trbody"></tbody></table></div>
+  </section>
+
+  <section class="card sum estsec" id="resumo">
     <div class="k eqk"><div class="lbl">Saldo total</div><div class="v" id="eq">—</div><div class="s" id="since">—</div></div>
     <div class="k"><div class="lbl">Lucro acumulado</div><div class="v" id="pnl">—</div><div class="s" id="pnls">—</div></div>
     <div class="k"><div class="lbl">Realizado</div><div class="v" id="real">—</div><div class="s" id="reals">—</div></div>
@@ -188,12 +234,12 @@ tr.sec:hover{background:transparent}
     <div class="sparkc"><svg class="spark" id="spark" viewBox="0 0 300 56" preserveAspectRatio="none"></svg></div>
   </section>
 
-  <section class="card dias-card" data-tab="pos" style="margin-top:14px">
-    <div class="hd"><h2>Lucro por dia</h2><span class="cap">todos os bots juntos · trades fechados em cada dia (horário de Brasília)</span></div>
+  <section class="card dias-card estsec" data-tab="pos" style="margin-top:14px">
+    <div class="hd"><h2>Lucro por dia</h2><span class="cap"><span id="diascap">estratégia Padrão</span> · trades fechados em cada dia (horário de Brasília)</span></div>
     <div class="dias" id="dias"></div>
   </section>
 
-  <div class="grid">
+  <div class="grid estsec">
     <div class="col">
       <section class="card" data-tab="pos">
         <div class="hd"><h2>Patrimônio</h2><span class="cap" id="eqcap">saldo total com as posições abertas</span><span class="sp"></span>
@@ -217,7 +263,7 @@ tr.sec:hover{background:transparent}
           <div class="cells" id="stats"></div>
         </section>
         <section class="card" data-tab="bots">
-          <div class="hd"><h2>Regras ativas</h2></div>
+          <div class="hd"><h2>Regras ativas</h2><span class="cap" id="regrascap"></span></div>
           <div class="cells" id="regras"></div>
         </section>
       </div>
@@ -236,7 +282,7 @@ tr.sec:hover{background:transparent}
       </section>
     </div>
   </div>
-  <div class="foot" id="foot">Dados simulados (paper trading) com preços reais da DexScreener · atualiza a cada ~75 s</div>
+  <div class="foot" id="foot">Dados simulados (paper trading) com preços reais da DexScreener · 3 estratégias com carteiras separadas · atualiza a cada ~75 s</div>
 </div>
 
 <nav class="tabs">
@@ -255,7 +301,7 @@ const RAW_URL = "https://raw.githubusercontent.com/" + REPO + "/dados/data/state
 const LOCAL_URL = "./data/state.json";
 const SO_LOCAL = /[?&]local=1/.test(location.search);
 const POLL_MS = 75000, STALE_S = 180;
-let S = null, fonte = "", falhou = false, apiPausaAte = 0, filtro = "trades", aberto = null, timer = null, periodo = "tudo";
+let S = null, RAW = null, EST = localStorage.getItem("est") || "padrao", fonte = "", falhou = false, apiPausaAte = 0, filtro = "trades", aberto = null, timer = null, periodo = "tudo";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -313,8 +359,21 @@ async function carregar() {
   }
   falhou = true; fonte = aviso || "sem conexão"; tick();
 }
+// visao da estrategia escolhida: mesmos campos do topo (padrao) trocados pelos da estrategia
+function visao(id) {
+  if (!RAW) return null;
+  const E = RAW.estrategias || {};
+  if (!E[EST] && EST !== "cmp") EST = "padrao";
+  id = id || EST;
+  if (id === "padrao" || id === "cmp" || !E[id]) return Object.assign({}, RAW, {est: "padrao", criterios: (E.padrao || {}).criterios});
+  const b = E[id];
+  const comuns = (RAW.atividades || []).filter(x => !x.estrategia && !GRUPOS.trades.includes(x.tipo));
+  const atv = (b.atividades || []).concat(comuns).sort((a, c) => c.ts - a.ts).slice(0, 150);
+  return Object.assign({}, RAW, b, {atividades: atv, est: id});
+}
 function usar(j, nome, aviso) {
-  if (!S || !j.gerado_ts || j.gerado_ts >= S.gerado_ts) S = j;
+  if (!RAW || !j.gerado_ts || j.gerado_ts >= RAW.gerado_ts) RAW = j;
+  S = visao();
   falhou = false;
   fonte = aviso ? aviso + " · " + nome : "";
   render(); tick();
@@ -323,8 +382,40 @@ function usar(j, nome, aviso) {
 }
 
 // ---------- render
+const NOME_EST = id => ((RAW && RAW.estrategias && RAW.estrategias[id]) || {}).nome || id;
+const COR_EST = id => ((RAW && RAW.estrategias && RAW.estrategias[id]) || {}).cor || "#8b949e";
+const tagEst = id => '<span class="esttag" style="background:' + COR_EST(id) + '">' + esc(NOME_EST(id)).toUpperCase() + "</span>";
+function estrategias() {
+  const ordem = RAW.ordem_estrategias || ["padrao"];
+  $("estsel").innerHTML = ordem.map(id => '<button data-e="' + id + '"' + (EST === id ? ' class="on"' : "") + '><span class="dot" style="background:' + COR_EST(id) + '"></span>' + esc(NOME_EST(id)) + "</button>").join("") +
+    (ordem.length > 1 ? '<button data-e="cmp"' + (EST === "cmp" ? ' class="on"' : "") + ">Comparar</button>" : "");
+  document.body.classList.toggle("cmp", EST === "cmp");
+  const b = (RAW.estrategias || {})[S.est] || {};
+  $("estcap").textContent = EST === "cmp" ? "comparando as " + ordem.length + " estratégias" : "mostrando: " + NOME_EST(S.est) + (b.real_permitido ? " · única que pode virar real" : " · sempre simulada");
+  $("diascap").textContent = "estratégia " + NOME_EST(S.est);
+  const cmp = RAW.comparativo || [];
+  $("cmpbody").innerHTML = cmp.map(r => '<tr data-e="' + r.id + '" class="' + (r.id === EST ? "sel" : "") + '"><td><span class="coin"><span class="av" style="background:' + r.cor + '">' + esc(r.nome.slice(0, 2).toUpperCase()) + "</span>" + esc(r.nome) + "</span></td><td>" + usd(r.saldo) +
+    '</td><td class="' + cls(r.lucro_usd) + '">' + usd(r.lucro_usd, 1) + "</td><td>" + r.trades + "</td><td>" + (r.acerto_pct == null ? "—" : Math.round(r.acerto_pct) + "% <span class='mut'>(" + r.vitorias + "/" + r.trades + ")</span>") +
+    "</td><td>" + r.abertas + (r.max_posicoes ? " <span class='mut'>de " + r.max_posicoes + "</span>" : "") + "</td></tr>").join("") || '<tr class="emptyrow"><td colspan="6">Aguardando dados das estratégias…</td></tr>';
+  if (EST !== "cmp") return;
+  $("crit").innerHTML = ordem.map(id => { const c = ((RAW.estrategias || {})[id] || {}).criterios || {entrada: [], saida: []};
+    return '<div class="cell"><div class="row"><span class="sym">' + tagEst(id) + "</span></div>" +
+      '<div class="lbl">Compra (quais moedas)</div><ul>' + c.entrada.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>" +
+      '<div class="lbl">Saída</div><ul>' + c.saida.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>"; }).join("");
+  const tr = RAW.trades || [];
+  $("ntrades").textContent = tr.length + " operações (mais recentes primeiro)";
+  $("trbody").innerHTML = tr.length ? tr.slice(0, 150).map(x => '<tr data-tok="' + esc(x.token) + '" data-e="' + esc(x.estrategia) + '"><td><div class="coin">' + av(x.simbolo) + "<span>" + esc(x.simbolo) + "</span></div></td><td>" + tagEst(x.estrategia) +
+    '</td><td><span class="tag t-' + x.tipo + '">' + TXT[x.tipo] + "</span></td><td>" + dataHora(x.ts) + "</td><td>" + MC(x, "mc", "preco") + "</td><td>" + usd(x.usd) +
+    '</td><td class="' + cls(x.resultado_usd) + '">' + (x.resultado_usd != null ? usd(x.resultado_usd, 1) : "—") + '</td><td class="mot">' + esc(x.texto) + "</td></tr>").join("")
+    : '<tr class="emptyrow"><td colspan="8">Nenhuma operação ainda.</td></tr>';
+}
+function setEst(e) {
+  EST = e; localStorage.setItem("est", e); S = visao(); fechar(); render();
+  if (e !== "cmp") window.scrollTo(0, 0);
+}
 function render() {
   if (!S) return;
+  estrategias();
   const real = S.modo !== "paper";
   $("modo").textContent = real ? "MODO REAL" : "MODO SIMULADO";
   $("modo").className = "pill " + (real ? "bad" : "sim");
@@ -492,7 +583,10 @@ function bots() {
     cell("Market cap máx.", cf.mc_max ? usd(cf.mc_max).replace(",00", "") : "sem limite") +
     cell("Traders seguidos", cf.n_traders ?? "—") + cell("Leituras X/dia", (cf.x_max_leituras ?? "—") + " máx.") +
     cell("Execução", esc((S.execucao || {}).modo || "SIMULADO")) +
-    cell("Latência média", (S.execucao || {}).latencia_media_s != null ? S.execucao.latencia_media_s.toFixed(1).replace(".", ",") + " s" : "sem ordens reais");
+    cell("Latência média", (S.execucao || {}).latencia_media_s != null ? S.execucao.latencia_media_s.toFixed(1).replace(".", ",") + " s" : "sem ordens reais") +
+    (S.criterios ? cell("Critérios de compra · " + esc(NOME_EST(S.est)), '<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;font-weight:500">' + S.criterios.entrada.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>", 1) +
+      cell("Saída", '<span style="font-size:12px;font-weight:500">' + esc(S.criterios.saida.join(" · ")) + "</span>", 1) : "");
+  $("regrascap").textContent = NOME_EST(S.est);
 }
 
 // ---------- detalhe da moeda
@@ -504,7 +598,7 @@ function detalhe(key, refresh) {
   const cell = (l, v, c) => '<div class="cell"><div class="lbl">' + l + '</div><b class="' + (c || "") + '">' + v + "</b></div>";
   const aberta = p && p.preco !== undefined;
   let h = '<div class="grab"></div><div class="row" style="align-items:center"><div style="display:flex;gap:10px;align-items:center">' + av(p ? p.simbolo : ops[0].simbolo) +
-    '<div><div class="sym" style="font-size:20px">' + esc(p ? p.simbolo : ops[0].simbolo) + '</div><div class="sub mono">' + (aberta ? "POSIÇÃO ABERTA" : "POSIÇÃO FECHADA") + " · MODO SIMULADO</div></div></div>" +
+    '<div><div class="sym" style="font-size:20px">' + esc(p ? p.simbolo : ops[0].simbolo) + '</div><div class="sub mono">' + (aberta ? "POSIÇÃO ABERTA" : "POSIÇÃO FECHADA") + " · " + esc(NOME_EST(S.est)).toUpperCase() + " · MODO SIMULADO</div></div></div>" +
     '<button class="xbtn" onclick="fechar()" aria-label="Fechar">×</button></div>';
   if (aberta) {
     h += '<div style="margin-top:14px"><span class="big mono">' + MC(p, "mc_atual", "preco") + '</span> <span class="res ' + cls(p.pnl_usd) + '" style="font-size:15px">' + usd(p.pnl_usd, 1) + '</span><div class="sub mono" style="font-size:11px">market cap atual' + (p.mc_estimado ? " (estimado)" : "") + " · preço " + px(p.preco) + "</div></div>";
@@ -563,7 +657,15 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { setTa
 { const h = location.hash.replace("#", ""); if (["atv", "pos", "bots"].includes(h)) setTab(h); }
 $("filt").onclick = e => { const b = e.target.closest("button"); if (!b) return; filtro = b.dataset.f; $("filt").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); feed(); };
 $("per").onclick = e => { const b = e.target.closest("button"); if (!b) return; periodo = b.dataset.p; $("per").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); grafico(); };
-document.addEventListener("click", e => { const it = e.target.closest(".item.click,tbody tr[data-tok]"); if (it && !e.target.closest(".panel")) detalhe({tok: it.dataset.tok, id: it.dataset.id}); });
+document.addEventListener("click", e => {
+  const sb = e.target.closest("#estsel button"); if (sb) return setEst(sb.dataset.e);
+  const cr = e.target.closest("#cmpbody tr[data-e]"); if (cr) return setEst(cr.dataset.e);
+  const it = e.target.closest(".item.click,tbody tr[data-tok]");
+  if (it && !e.target.closest(".panel")) {
+    if (it.dataset.e && it.dataset.e !== S.est) S = visao(it.dataset.e);  // trade de outra estrategia (aba Comparar)
+    detalhe({tok: it.dataset.tok, id: it.dataset.id});
+  }
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape" && aberto) fechar(); });
 $("sheet").onclick = e => { if (e.target.id === "sheet") fechar(); };
 $("chart").addEventListener("mousemove", hover); $("chart").addEventListener("mouseleave", out);
