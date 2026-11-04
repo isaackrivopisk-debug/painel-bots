@@ -200,7 +200,7 @@ body:not(.cmp) .cmponly{display:none!important}
 <body class="t-atv">
 <div class="wrap">
   <header class="top">
-    <span class="pill sim" id="modo">MODO SIMULADO</span>
+    <span class="pill sim" id="modo">MODO SIMULADO</span> <span class="pill ghost" id="horario"></span>
     <span class="pill ghost" id="exec">Execução: —</span>
     <span class="pill wait" id="conn"><span class="d"></span><span id="conntx">CONECTANDO</span></span>
     <span class="cap mono" id="updtx">carregando…</span>
@@ -428,6 +428,9 @@ function render() {
   const real = S.modo !== "paper";
   $("modo").textContent = real ? "MODO REAL" : "MODO SIMULADO";
   $("modo").className = "pill " + (real ? "bad" : "sim");
+  const H = S.horario || {dentro: true, texto: ""};
+  $("horario").textContent = H.dentro ? "☀️ " + H.texto : "🌙 " + H.texto;
+  $("horario").className = "pill " + (H.dentro ? "ghost" : "wait");
   const ex = S.execucao || {modo: "SIMULADO"};
   const lat = ex.latencia_media_s != null ? ex.latencia_media_s.toFixed(1).replace(".", ",") + " s (" + ex.n_ordens + " ordens)"
             : (ex.latencia_cotacao_s != null ? "— (cotação " + ex.latencia_cotacao_s.toFixed(1).replace(".", ",") + " s)" : "—");
