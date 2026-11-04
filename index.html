@@ -66,6 +66,11 @@ svg.spark{width:100%;height:56px;display:block}
 .chart{position:relative;width:100%;height:340px}
 .chart svg{position:absolute;inset:0;width:100%;height:100%}
 .chart .tip{position:absolute;pointer-events:none;background:#0b0f14;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:11px var(--mono);white-space:nowrap;transform:translate(-50%,-115%);display:none}
+.mas{border-radius:50%;object-fit:cover;flex:none;border:2px solid #8b949e;background:#161412;vertical-align:middle}
+.mas.s{width:20px;height:20px;border-width:1.5px}.mas.m{width:28px;height:28px}.mas.l{width:44px;height:44px}
+.esthead{display:flex;align-items:center;gap:10px;margin:10px 0 2px;font:700 16px var(--sans)}
+.estsel .mas{width:22px;height:22px}
+@media(max-width:700px){.estsel .mas{width:20px;height:20px}.mas.l{width:36px;height:36px}}
 /* tabela */
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -205,6 +210,7 @@ body:not(.cmp) .cmponly{display:none!important}
   </header>
 
   <div class="estbar"><div class="estsel" id="estsel"></div><span class="cap mono" id="estcap"></span></div>
+  <div class="esthead" id="esthead"></div>
 
   <section class="card cmpcard">
     <div class="hd"><h2>Estratégias lado a lado</h2><span class="cap">cada uma com carteira simulada própria de US$ 100 · toque numa linha para abrir</span></div>
@@ -384,17 +390,20 @@ function usar(j, nome, aviso) {
 // ---------- render
 const NOME_EST = id => ((RAW && RAW.estrategias && RAW.estrategias[id]) || {}).nome || id;
 const COR_EST = id => ((RAW && RAW.estrategias && RAW.estrategias[id]) || {}).cor || "#8b949e";
-const tagEst = id => '<span class="esttag" style="background:' + COR_EST(id) + '">' + esc(NOME_EST(id)).toUpperCase() + "</span>";
+const MAS_IDS = ["padrao","seguidor","trending"];
+const masc = (id, t) => MAS_IDS.includes(id) ? '<img class="mas ' + t + '" src="img/mascote_' + id + '.webp" alt="" loading="lazy" style="border-color:' + COR_EST(id) + '">' : "";
+const tagEst = id => masc(id, "s") + " " + '<span class="esttag" style="background:' + COR_EST(id) + '">' + esc(NOME_EST(id)).toUpperCase() + "</span>";
 function estrategias() {
   const ordem = RAW.ordem_estrategias || ["padrao"];
-  $("estsel").innerHTML = ordem.map(id => '<button data-e="' + id + '"' + (EST === id ? ' class="on"' : "") + '><span class="dot" style="background:' + COR_EST(id) + '"></span>' + esc(NOME_EST(id)) + "</button>").join("") +
+  $("estsel").innerHTML = ordem.map(id => '<button data-e="' + id + '"' + (EST === id ? ' class="on"' : "") + '>' + (masc(id, "s") || '<span class="dot" style="background:' + COR_EST(id) + '"></span>') + esc(NOME_EST(id)) + "</button>").join("") +
     (ordem.length > 1 ? '<button data-e="cmp"' + (EST === "cmp" ? ' class="on"' : "") + ">Comparar</button>" : "");
   document.body.classList.toggle("cmp", EST === "cmp");
   const b = (RAW.estrategias || {})[S.est] || {};
   $("estcap").textContent = EST === "cmp" ? "comparando as " + ordem.length + " estratégias" : "mostrando: " + NOME_EST(S.est) + (b.real_permitido ? " · única que pode virar real" : " · sempre simulada");
+  $("esthead").innerHTML = EST === "cmp" ? "" : masc(S.est, "l") + "<span>" + esc(NOME_EST(S.est)) + "</span>";
   $("diascap").textContent = "estratégia " + NOME_EST(S.est);
   const cmp = RAW.comparativo || [];
-  $("cmpbody").innerHTML = cmp.map(r => '<tr data-e="' + r.id + '" class="' + (r.id === EST ? "sel" : "") + '"><td><span class="coin"><span class="av" style="background:' + r.cor + '">' + esc(r.nome.slice(0, 2).toUpperCase()) + "</span>" + esc(r.nome) + "</span></td><td>" + usd(r.saldo) +
+  $("cmpbody").innerHTML = cmp.map(r => '<tr data-e="' + r.id + '" class="' + (r.id === EST ? "sel" : "") + '"><td><span class="coin">' + (masc(r.id, "m") || '<span class="av" style="background:' + r.cor + '">' + esc(r.nome.slice(0, 2).toUpperCase()) + "</span>") + esc(r.nome) + "</span></td><td>" + usd(r.saldo) +
     '</td><td class="' + cls(r.lucro_usd) + '">' + usd(r.lucro_usd, 1) + "</td><td>" + r.trades + "</td><td>" + (r.acerto_pct == null ? "—" : Math.round(r.acerto_pct) + "% <span class='mut'>(" + r.vitorias + "/" + r.trades + ")</span>") +
     "</td><td>" + r.abertas + (r.max_posicoes ? " <span class='mut'>de " + r.max_posicoes + "</span>" : "") + "</td></tr>").join("") || '<tr class="emptyrow"><td colspan="6">Aguardando dados das estratégias…</td></tr>';
   if (EST !== "cmp") return;
